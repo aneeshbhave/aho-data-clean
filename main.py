@@ -5,9 +5,11 @@ Code -->
 [*] Convert Main() to request/response format
 [X] Make Clean() use a regular expression NOTE: UNNECESSARY OPTIMIZATION
 [ ] Make MatchAho() return an array of JS Object instead of a list of dicts
+[ ] Make function work for request.args.db being a list of paths instead of a single path
 
 Cloud -->
 [ ] Make sure function works when called in a script
+[ ] request.args.dict should be a JSON string instead of a path to a file
 
 Debugging -->
 [*] Test function on more test cases 
@@ -15,38 +17,59 @@ Debugging -->
 [ ] Print logs every now and then
 
 Documentation -->
-[ ] Write documentation for code in github repo
+[*] Write documentation for code in github repo
 [*] Comment code before you lose sanity
+[ ] Add comments for the cloud part of Main()
 ------------------------------------------------------------------------------
 """
 
-import ahocorasick
 from google.cloud import storage
+import ahocorasick
 import json
 
+
 def Main(request):
-    request_json = request.get_json(silent=True)
+    requestArgs = request.args
+    
+    if requestArgs and "bucket" in requestArgs:
+        bucketAddr = requestArgs["bucket"]
+    else:
 
-    bucketAddr = request.args.bucket if request_json and "bucket" in request_json else "phone-numberdb"
-    dbAddr = request.args.db if request_json and "db" in request_json else "db.csv"
-    dictAddr = request.args.dict if request_json and "dict" in request_json else "contacts.json"
+        return "bucket arguement not provided"
 
+    if requestArgs and "db" in requestArgs:
+        dbAddr = requestArgs["db"]
+    else:
+        return "db argument not provided"
+
+    if requestArgs and "dict" in requestArgs:
+        dict = requestArgs["dict"]
+    else:
+        return "dict arguement not provided"
+
+    
     #Get data from cloud storage
     client = storage.Client() 
+    if not client:
+        return "Unable to connect to Bucket"
+
     bucketObj = client.get_bucket(bucketAddr) 
     if not bucketObj:
-        return ""
+        return f"ERROR: {bucketAddr} not found"
 
-    dbBlob, dictBlob = bucketObj.get_blob(dbAddr), bucketObj.get_blob(dictAddr)
-    if not dbBlob or not dictBlob:
-        return ""
 
-    dbData, dictData = dbBlob.download_as_string(), dictBlob.download_as_string()
-    if not dbData or not dictData:
-        return ""
+    dbBlob = bucketObj.get_blob(dbAddr)
+    if not dbBlob:
+        return f"ERROR: {dbAddr} not found in {bucketAddr}"
+
+    dbData= dbBlob.download_as_string()
+    if not dbData:
+        return f"ERROR: {dbAddr} is empty"
     
-    dictDataList = json.loads(dictData)
-    matchText =  MatchAho(dictDataList, dbData)
+    #Parse dict (JSON Data) and match
+    dictData = json.loads(str(dict))
+
+    matchText =  MatchAho(dictData, dbData)
     return str(matchText)
 
 #Clean phone number data and return it in a format of 10 digits
@@ -61,11 +84,11 @@ def MatchAho(dict :list, pool :str, key :str = "number") -> list:
     #First loop to insert elements to trie
     insertIndex = 0;
     for obj in dict:
-        cleanData = Clean(str(obj[key]))
+        cleanData = Clean(str(obj[key])) #Type-casting in case input data is an int
         aho.add_word(cleanData, (insertIndex, cleanData))
         insertIndex += 1
     
-    aho.make_automaton() #Build output and suffix links
+    aho.make_automaton()
     
     #Second loop to search through pool using trie
     for j, (idx, originalValue) in aho.iter(str(pool)):
