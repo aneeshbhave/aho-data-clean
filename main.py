@@ -1,10 +1,9 @@
 """
-------------------------------------------------------------------------------
 ----------------------------------TODO TABLE----------------------------------
 Code -->
 [*] Convert Main() to request/response format
 [X] Make Clean() use a regular expression NOTE: UNNECESSARY OPTIMIZATION
-[ ] Make MatchAho() return an array of JS Object instead of a list of dicts
+[X] Make MatchAho() return an array of JS Object instead of a list of dicts NOTE: Use JSON.Parse() when called
 [ ] Make function work for request.args.db being a list of paths instead of a single path
 
 Cloud -->
@@ -24,9 +23,7 @@ Documentation -->
 """
 
 from google.cloud import storage
-import ahocorasick
-import json
-
+import ahocorasick, phonenumbers, json
 
 def Main(request):
     requestArgs = request.args
@@ -56,28 +53,46 @@ def Main(request):
     bucketObj = client.get_bucket(bucketAddr) 
     if not bucketObj:
         return f"ERROR: {bucketAddr} not found"
-
-
-    dbBlob = bucketObj.get_blob(dbAddr)
-    if not dbBlob:
-        return f"ERROR: {dbAddr} not found in {bucketAddr}"
-
-    dbData= dbBlob.download_as_string()
-    if not dbData:
-        return f"ERROR: {dbAddr} is empty"
     
-    #Parse dict (JSON Data) and match
-    dictData = json.loads(str(dict))
+    if not dbAddr:
+        return f"ERROR {dbAddr} is empty"
+    dbAddrList = json.loads(dbAddr)
+    
+    dbList = []
+    for addr in dbAddrList:
+        dbBlob = bucketObj.get_blob(addr)
+        if not dbBlob:
+            return f"ERROR: {dbAddr} not found in {bucketAddr}"
+        dbData = dbBlob.download_as_string()
+        if not dbData:
+            return f"ERROR: {addr} is empty"
+        dbList.append(str(dbData))
 
-    matchText =  MatchAho(dictData, dbData)
+    #Parse dict (JSON Data) and matchText
+    dictData = json.loads(str(dict))
+    
+    matchText =  MatchAho(dictData, dbList)
     return str(matchText)
 
 #Clean phone number data and return it in a format of 10 digits
 def Clean(data :str) -> str:
-    return data.replace(' ', '').replace('-', '')[-10:]
+    if data[0] != '+' and len(data) != 10:
+        data = '+' + data
+    try:
+        ret = str(phonenumbers.parse(data, None).national_number)
+    except:
+        translateDict = {
+                '-': '',
+                ' ': '',
+                '(': '',
+                ')': '',
+                }
+        translated = data.translate(translateDict)
+        return translated
+    return ret
 
 #Create trie from dict and search in pool, key is used to access phone number in JSON
-def MatchAho(dict :list, pool :str, key :str = "number") -> list:
+def MatchAho(dict :list, poolList :list, key :str = "number") -> list:
     aho = ahocorasick.Automaton()
     common = [] #List of dicts containing common contacts
 
@@ -90,13 +105,14 @@ def MatchAho(dict :list, pool :str, key :str = "number") -> list:
     
     aho.make_automaton()
     
-    #Second loop to search through pool using trie
-    for j, (idx, originalValue) in aho.iter(str(pool)):
-        # i = j - len(originalValue) + 1
-        common.append(dict[idx])
+    for pool in poolList:
+        #Second loop to search through pool using trie
+        for j, (idx, val) in aho.iter(str(pool)):
+            # i = j - len(originalValue) + 1
+            common.append(dict[idx])
     
     return common
 
 #WARN: REMOVE BELOW LINES BEFORE DEPLOYMENT
-if __name__ == "__main__":
-    Main(None)
+# if __name__ == "__main__":
+    # Main(None)
