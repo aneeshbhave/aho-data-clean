@@ -4,16 +4,12 @@ Code -->
 [*] Convert Main() to request/response format
 [X] Make Clean() use a regular expression NOTE: UNNECESSARY OPTIMIZATION
 [X] Make MatchAho() return an array of JS Object instead of a list of dicts NOTE: Use JSON.Parse() when called
-<<<<<<< HEAD
 [*] Make function work for request.args.db being a list of paths instead of a single path
-=======
-[ ] Make function work for request.args.db being a list of paths instead of a single path
->>>>>>> 0f631f1187a28927cab3d5f97b240062d1ce8965
 
 Cloud -->
 [*] Make sure function works when called in a script
 [*] request.args.dict should be a JSON string instead of a path to a file
-[*] Make function use POST request
+[ ] Make function use POST request
 
 Debugging -->
 [*] Test function on more test cases 
@@ -32,7 +28,7 @@ import ahocorasick, phonenumbers, json
 
 def Main(request):
     if request.method != "POST":
-        return "ERR: Request type is not POST"
+        return "ERR: Request type should be POST"
 
     contentType = request.headers["content-type"]
     if contentType != "application/json":
@@ -62,25 +58,16 @@ def Main(request):
 
     bucketObj = client.get_bucket(bucketAddr) 
     if not bucketObj:
-<<<<<<< HEAD
         return f"ERR: {bucketAddr} not found"
     
     if not dbAddr:
         return f"ERR: {dbAddr} is empty"
     dbAddrList = dbAddr
-=======
-        return f"ERROR: {bucketAddr} not found"
-    
-    if not dbAddr:
-        return f"ERROR {dbAddr} is empty"
-    dbAddrList = json.loads(dbAddr)
->>>>>>> 0f631f1187a28927cab3d5f97b240062d1ce8965
     
     dbList = []
     for addr in dbAddrList:
         dbBlob = bucketObj.get_blob(addr)
         if not dbBlob:
-<<<<<<< HEAD
             return f"ERR: {dbAddr} not found in {bucketAddr}"
         dbData = dbBlob.download_as_string()
         if not dbData:
@@ -89,16 +76,6 @@ def Main(request):
 
     #Parse dict (JSON Data) and matchText
     dictData = dict
-=======
-            return f"ERROR: {dbAddr} not found in {bucketAddr}"
-        dbData = dbBlob.download_as_string()
-        if not dbData:
-            return f"ERROR: {addr} is empty"
-        dbList.append(str(dbData))
-
-    #Parse dict (JSON Data) and matchText
-    dictData = json.loads(str(dict))
->>>>>>> 0f631f1187a28927cab3d5f97b240062d1ce8965
     
     matchText =  MatchAho(dictData, dbList)
     return str(matchText)
@@ -110,7 +87,6 @@ def Clean(data :str) -> str:
     try:
         ret = str(phonenumbers.parse(data, None).national_number)
     except:
-<<<<<<< HEAD
         try:
             translateDict = {
                     '-': '',
@@ -122,16 +98,6 @@ def Clean(data :str) -> str:
             return translated[-10:]
         except:
             return ""
-=======
-        translateDict = {
-                '-': '',
-                ' ': '',
-                '(': '',
-                ')': '',
-                }
-        translated = data.translate(translateDict)
-        return translated
->>>>>>> 0f631f1187a28927cab3d5f97b240062d1ce8965
     return ret
 
 #Create trie from dict and search in pool, key is used to access phone number in JSON
