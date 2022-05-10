@@ -1,5 +1,6 @@
 [
  {
+<<<<<<< HEAD
    "name": "Holly Ranks",
    "number": 4048126205
  },
@@ -6000,3 +6001,33 @@
    "number": 8798217968
  }
 ]
+=======
+   "name": "Ema Pratt",
+   "number": 2626967298
+ },
+ {
+   "name": "Esmeralda Roberts",
+   "number": 9145259670
+ },
+ {
+   "name": "Carl Todd",
+   "number": 6794748377
+ },
+ {
+   "name": "Peyton Williams",
+   "number": 7682207191
+ },
+ {
+   "name": "Denny Carson",
+   "number": 9419954140
+ },
+ {
+   "name": "Rosemary Nelson",
+   "number": 7266842617
+ },
+ {
+   "name": "Jack Forth",
+   "number": 2137158233
+ },
+]
+>>>>>>> 0f631f1187a28927cab3d5f97b240062d1ce8965
